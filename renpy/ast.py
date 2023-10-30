@@ -1923,7 +1923,7 @@ class Menu(Node):
                 else:
                     item_arguments.append(((), {}))
 
-        if narration:
+        if narration and renpy.exports.get_menu_choices(choices, self.set, item_arguments):
             renpy.exports.say(None, "\n".join(narration), interact=False)
 
         say_menu_with(self.with_, renpy.game.interface.set_transition)
