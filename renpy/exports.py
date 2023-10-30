@@ -1012,6 +1012,69 @@ def get_menu_args():
     return menu_args, menu_kwargs
 
 
+def get_menu_choices(items, set_expr, item_arguments, substitute=None):
+    """
+    :undocumented:
+
+    Determines what choices will be displayed in a menu, based on
+    conditions and menuset.
+    """
+
+    if substitute is None:
+        def substitute(s):
+            return s
+
+    if item_arguments is None:
+        item_arguments = [ ((), {}) ] * len(items)
+
+    # Filter the list of items on the set_expr:
+    if set_expr:
+        set = renpy.python.py_eval(set_expr) # @ReservedAssignment
+    else:
+        set = None # @ReservedAssignment
+
+    if set:
+        new_items = [ ]
+        new_item_arguments = [ ]
+
+        for i, ia in zip(items, item_arguments):
+            if i[0] not in set:
+                new_items.append(i)
+                new_item_arguments.append(ia)
+
+        items = new_items
+        item_arguments = new_item_arguments
+
+    # Filter the list of items to only include ones for which the
+    # condition is true.
+
+    if renpy.config.menu_actions:
+
+        location = renpy.game.context().current
+
+        new_items = [ ]
+
+        for (label, condition, value), (item_args, item_kwargs) in zip(items, item_arguments):
+            label = substitute(label)
+            condition = renpy.python.py_eval(condition)
+
+            if (not renpy.config.menu_include_disabled) and (not condition):
+                continue
+
+            if value is not None:
+                new_items.append((label, renpy.ui.ChoiceReturn(label, value, location, sensitive=condition, args=item_args, kwargs=item_kwargs)))
+            else:
+                new_items.append((label, None))
+
+    else:
+
+        new_items = [ (substitute(label), value)
+                      for label, condition, value in items
+                      if renpy.python.py_eval(condition) ]
+
+    return new_items
+
+
 def menu(items, set_expr, args=None, kwargs=None, item_arguments=None):
     """
     :undocumented:
