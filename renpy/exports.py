@@ -1107,55 +1107,11 @@ def menu(items, set_expr, args=None, kwargs=None, item_arguments=None):
     if item_arguments is None:
         item_arguments = [ ((), {}) ] * len(items)
 
-    # Filter the list of items on the set_expr:
-    if set_expr:
-        set = renpy.python.py_eval(set_expr) # @ReservedAssignment
-
-        new_items = [ ]
-        new_item_arguments = [ ]
-
-        for i, ia in zip(items, item_arguments):
-            if i[0] not in set:
-                new_items.append(i)
-                new_item_arguments.append(ia)
-
-        items = new_items
-        item_arguments = new_item_arguments
-    else:
-        set = None # @ReservedAssignment
-
-    # Filter the list of items to only include ones for which the
-    # condition is true.
-
-    if renpy.config.menu_actions:
-
-        location = renpy.game.context().current
-
-        new_items = [ ]
-
-        for (label, condition, value), (item_args, item_kwargs) in zip(items, item_arguments):
-            label = substitute(label)
-            condition = renpy.python.py_eval(condition)
-
-            if (not renpy.config.menu_include_disabled) and (not condition):
-                continue
-
-            if value is not None:
-                new_items.append((label, renpy.ui.ChoiceReturn(label, value, location, sensitive=condition, args=item_args, kwargs=item_kwargs)))
-            else:
-                new_items.append((label, None))
-
-    else:
-
-        new_items = [ (substitute(label), value)
-                      for label, condition, value in items
-                      if renpy.python.py_eval(condition) ]
-
-    # Check to see if there's at least one choice in set of items:
-    choices = [ value for label, value in new_items if value is not None ]
+    # Get the filtered list of items, based on conditions and menuset
+    new_items = get_menu_choices(items, set_expr, item_arguments, substitute)
 
     # If not, bail out.
-    if not choices:
+    if not new_items:
         return None
 
     old_menu_args = menu_args
@@ -1176,6 +1132,11 @@ def menu(items, set_expr, args=None, kwargs=None, item_arguments=None):
         menu_kwargs = old_menu_kwargs
 
     # If we have a set, fill it in with the label of the chosen item.
+    if set_expr:
+        set = renpy.python.py_eval(set_expr) # @ReservedAssignment
+    else:
+        set = None # @ReservedAssignment
+
     if set is not None and rv is not None:
         for label, condition, value in items:
             if value == rv:
